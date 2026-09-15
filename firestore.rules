@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 個人データ: users/{uid}/kv/{key}
+    // 本人(同じuid)だけが読み書きできる
+    match /users/{uid}/kv/{key} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // 共有(家族)データ: shared_kv/{key}
+    // key自体に「招待コード」が埋め込まれているため(例: household-ABC123-...)、
+    // サインイン済みであれば誰でも読み書きできる(コードを知っている人だけが
+    // 実際にはそのkeyにアクセスできる、という元のアプリの共有モデルを踏襲)
+    match /shared_kv/{key} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 上記以外は全て拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
